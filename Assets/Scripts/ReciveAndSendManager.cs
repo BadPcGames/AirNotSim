@@ -31,7 +31,7 @@ public class ReciveAndSendManager : MonoBehaviour
         receiveThread.Start();
     }
 
-    void Update()
+    void FixedUpdate()
     {
         SendTelemetry();
 
