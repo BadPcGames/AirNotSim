@@ -41,6 +41,8 @@ public class DronePhysics : MonoBehaviour
     void Start()
     {
         if (rb == null) rb = GetComponent<Rigidbody>();
+
+        rb.centerOfMass = Vector3.zero;
     }
 
     void FixedUpdate()
