@@ -26,6 +26,7 @@ public class DronePhysics : MonoBehaviour
 
     public List<Motor> motors;
     public Rigidbody rb;
+    public Transform CM;
 
     [Header("Environment")]
     [Tooltip("Плотность воздуха в кг/м³. На уровне моря при 15°C равна 1.225")]
@@ -42,7 +43,7 @@ public class DronePhysics : MonoBehaviour
     {
         if (rb == null) rb = GetComponent<Rigidbody>();
 
-        rb.centerOfMass = Vector3.zero;
+        rb.centerOfMass = CM.localPosition;
     }
 
     void FixedUpdate()

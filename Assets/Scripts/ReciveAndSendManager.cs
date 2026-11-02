@@ -51,9 +51,9 @@ public class ReciveAndSendManager : MonoBehaviour
 
         TelemetryData data = new TelemetryData
         {
-            pitch = t.eulerAngles.z,
+            pitch = t.eulerAngles.x,
             yaw = t.eulerAngles.y,
-            roll = t.eulerAngles.x,
+            roll = t.eulerAngles.z,
             gpsLat = 50.45f + (t.position.z * 0.00001f),
             gpsLon = 30.52f + (t.position.x * 0.00001f),
             gpsAlt = t.position.y

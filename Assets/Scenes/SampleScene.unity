@@ -493,6 +493,37 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &476090443
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 476090444}
+  m_Layer: 0
+  m_Name: Centermass
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &476090444
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 476090443}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.0024499896, y: -0.3528, z: 0.067718856}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5459530503137992377}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &558810268
 GameObject:
   m_ObjectHideFlags: 0
@@ -652,13 +683,6 @@ MonoBehaviour:
     bladeCount: 3
     propellerTransform: {fileID: 2779804655935542957}
     currentRPM: 0
-  - motorTransform: {fileID: 6262676860252418803}
-    rotationDirection: -1
-    diameterInches: 5
-    pitchInches: 4.5
-    bladeCount: 3
-    propellerTransform: {fileID: 6262676860252418803}
-    currentRPM: 0
   - motorTransform: {fileID: 1344665210941283922}
     rotationDirection: -1
     diameterInches: 5
@@ -666,7 +690,15 @@ MonoBehaviour:
     bladeCount: 3
     propellerTransform: {fileID: 1344665210941283922}
     currentRPM: 0
+  - motorTransform: {fileID: 6262676860252418803}
+    rotationDirection: -1
+    diameterInches: 5
+    pitchInches: 4.5
+    bladeCount: 3
+    propellerTransform: {fileID: 6262676860252418803}
+    currentRPM: 0
   rb: {fileID: 1104273779}
+  CM: {fileID: 476090444}
   airDensity: 1.225
   baseCt: 0.025
   baseCq: 0.0015
@@ -894,7 +926,7 @@ MonoBehaviour:
   - 0
   - 0
   - 0
-  MaxRPM: 30000
+  MaxRPM: 25000
   Physics: {fileID: 1104273778}
   Synh: 0
 --- !u!1 &1642231271
@@ -1022,7 +1054,7 @@ GameObject:
   - component: {fileID: 1464820285381791317}
   - component: {fileID: 7490275899685932183}
   m_Layer: 0
-  m_Name: polySurface273
+  m_Name: BL
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1084,7 +1116,7 @@ GameObject:
   - component: {fileID: 2346564905426326308}
   - component: {fileID: 2104180302092506804}
   m_Layer: 0
-  m_Name: polySurface271
+  m_Name: FR
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1806,7 +1838,7 @@ GameObject:
   - component: {fileID: 4574962799085469841}
   - component: {fileID: 6570880680003690484}
   m_Layer: 0
-  m_Name: polySurface272
+  m_Name: FL
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2167,6 +2199,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 476090444}
   - {fileID: 1716675545686588208}
   - {fileID: 6485387518715777658}
   - {fileID: 3455290176758085336}
@@ -2503,7 +2536,7 @@ GameObject:
   - component: {fileID: 6101622451202981714}
   - component: {fileID: 4714933269392501216}
   m_Layer: 0
-  m_Name: polySurface270
+  m_Name: BR
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
