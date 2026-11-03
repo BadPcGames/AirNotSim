@@ -1,8 +1,10 @@
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class ReciveAndSendManager : MonoBehaviour
 {
@@ -13,22 +15,44 @@ public class ReciveAndSendManager : MonoBehaviour
     public string externalAppIP = "127.0.0.1";
     public int telemetryPort = 9001;
     public int motorPort = 9002;
+    public int videoPort = 9003;
+
+    [Header("Video Settings")]
+    public RenderTexture droneCameraRT; 
+    [Range(5, 60)] public int videoFps = 30;
+    [Range(10, 100)] public int jpegQuality = 50;
 
     private UdpClient udpTelemetrySender;
     private UdpClient udpMotorReceiver;
+    private UdpClient udpVideoSender;
     private Thread receiveThread;
 
     private float m1, m2, m3, m4;
     private bool isRunning = true;
 
+    private Texture2D videoTextureCopy;
+    private float lastVideoFrameTime;
+    private bool isFrameProcessing = false;
+
     void Start()
     {
         udpTelemetrySender = new UdpClient();
         udpMotorReceiver = new UdpClient(motorPort);
+        udpVideoSender = new UdpClient();
 
         receiveThread = new Thread(ReceiveMotorCommands);
         receiveThread.IsBackground = true;
         receiveThread.Start();
+
+        if (droneCameraRT == null)
+        {
+            Debug.LogError("[VIDEO ERROR] Не назначен droneCameraRT в инспекторе ReciveAndSendManager!");
+        }
+    }
+
+    void Update()
+    {
+        ProcessVideoStreaming();
     }
 
     void FixedUpdate()
@@ -42,6 +66,53 @@ public class ReciveAndSendManager : MonoBehaviour
             EngineController.throtle[2] = m3;
             EngineController.throtle[3] = m4;
         }
+    }
+
+    private void ProcessVideoStreaming()
+    {
+        if (droneCameraRT == null || isFrameProcessing) return;
+
+        if (Time.time - lastVideoFrameTime >= (1.0f / videoFps))
+        {
+            lastVideoFrameTime = Time.time;
+            isFrameProcessing = true;
+
+            AsyncGPUReadback.Request(droneCameraRT, 0, OnGPUReadbackCompleted);
+        }
+    }
+
+    private void OnGPUReadbackCompleted(AsyncGPUReadbackRequest request)
+    {
+        isFrameProcessing = false;
+
+        if (!isRunning) return;
+
+        if (request.hasError)
+        {
+            Debug.LogWarning("[VIDEO ERROR] Ошибка чтения из GPU (AsyncGPUReadback error)!");
+            return;
+        }
+
+        if (videoTextureCopy == null)
+        {
+            videoTextureCopy = new Texture2D(droneCameraRT.width, droneCameraRT.height, TextureFormat.RGBA32, false);
+        }
+
+        videoTextureCopy.LoadRawTextureData(request.GetData<byte>());
+        videoTextureCopy.Apply(false, false);
+        byte[] jpegBytes = videoTextureCopy.EncodeToJPG(jpegQuality);
+
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            try
+            {
+                udpVideoSender?.Send(jpegBytes, jpegBytes.Length, externalAppIP, videoPort);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("Ошибка отправки видео: " + ex.Message);
+            }
+        });
     }
 
     void SendTelemetry()
@@ -80,9 +151,10 @@ public class ReciveAndSendManager : MonoBehaviour
                 m3 = cmds.m3;
                 m4 = cmds.m4;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                Debug.LogWarning("Motor receive error (or thread stop): " + ex.Message);
+                if (isRunning)
+                    Debug.LogWarning("Motor receive error: " + ex.Message);
             }
         }
     }
@@ -92,6 +164,11 @@ public class ReciveAndSendManager : MonoBehaviour
         isRunning = false;
         udpTelemetrySender?.Close();
         udpMotorReceiver?.Close();
+        udpVideoSender?.Close();
+
+        if (videoTextureCopy != null)
+            Destroy(videoTextureCopy);
+
         receiveThread?.Abort();
     }
 }
