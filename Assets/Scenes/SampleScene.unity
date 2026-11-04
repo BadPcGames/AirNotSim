@@ -610,7 +610,7 @@ MonoBehaviour:
   videoPort: 9003
   droneCameraRT: {fileID: 8400000, guid: 0a3ec0161374bfa459dbd75717a97b0a, type: 2}
   videoFps: 20
-  jpegQuality: 60
+  jpegQuality: 70
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -840,7 +840,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 7.74679, y: 0, z: 6.14513}
-  m_LocalScale: {x: 200, y: 1, z: 200}
+  m_LocalScale: {x: 2000, y: 1, z: 2000}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1357,9 +1357,9 @@ Camera:
   m_LensShift: {x: 0, y: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.16
+    x: 0
     y: 0
-    width: 0.68
+    width: 1
     height: 1
   near clip plane: 0.3
   far clip plane: 1000

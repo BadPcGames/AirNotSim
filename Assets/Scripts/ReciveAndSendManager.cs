@@ -125,8 +125,8 @@ public class ReciveAndSendManager : MonoBehaviour
             pitch = t.eulerAngles.x,
             yaw = t.eulerAngles.y,
             roll = t.eulerAngles.z,
-            gpsLat = 50.45f + (t.position.z * 0.00001f),
-            gpsLon = 30.52f + (t.position.x * 0.00001f),
+            gpsLat = 50.45d + ((double)t.position.z * 0.00001d),
+            gpsLon = 30.52d + ((double)t.position.x * 0.00001d),
             gpsAlt = t.position.y
         };
 
@@ -174,7 +174,10 @@ public class ReciveAndSendManager : MonoBehaviour
 }
 
 [System.Serializable]
-public class TelemetryData { public float pitch, roll, yaw, gpsLat, gpsLon, gpsAlt; }
+public class TelemetryData { 
+    public float pitch, roll, yaw, gpsAlt;
+    public double gpsLat, gpsLon;
+}
 
 [System.Serializable]
 public class MotorCommands { public float m1, m2, m3, m4; }
