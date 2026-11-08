@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -11,6 +12,8 @@ public class ReciveAndSendManager : MonoBehaviour
     public EngineController EngineController;
     public DronePhysics Physics;
 
+    public List<Anten> antens;
+
     [Header("Network Settings")]
     public string externalAppIP = "127.0.0.1";
     public int telemetryPort = 9001;
@@ -18,9 +21,16 @@ public class ReciveAndSendManager : MonoBehaviour
     public int videoPort = 9003;
 
     [Header("Video Settings")]
-    public RenderTexture droneCameraRT; 
+    public RenderTexture droneCameraRT;
     [Range(5, 60)] public int videoFps = 30;
     [Range(10, 100)] public int jpegQuality = 50;
+    [Range(5, 60)] public int maxVideoFps = 30;
+    [Range(10, 100)] public int maxJpegQuality = 50;
+
+    [Header("Signal Testing (Debug)")]
+    [Tooltip("Если включено, берет сигнал из ползунка ниже. Если выключено - считает физику.")]
+    public bool overrideSignal = true;
+    [Range(0, 100)] public float currentSignal = 100f;
 
     private UdpClient udpTelemetrySender;
     private UdpClient udpMotorReceiver;
@@ -34,7 +44,7 @@ public class ReciveAndSendManager : MonoBehaviour
     private float lastVideoFrameTime;
     private bool isFrameProcessing = false;
 
-    void Start()
+    private void Start()
     {
         udpTelemetrySender = new UdpClient();
         udpMotorReceiver = new UdpClient(motorPort);
@@ -45,17 +55,15 @@ public class ReciveAndSendManager : MonoBehaviour
         receiveThread.Start();
 
         if (droneCameraRT == null)
-        {
-            Debug.LogError("[VIDEO ERROR] Не назначен droneCameraRT в инспекторе ReciveAndSendManager!");
-        }
+            Debug.LogError("[VIDEO ERROR] Не назначен droneCameraRT!");
     }
 
-    void Update()
+    private void Update()
     {
         ProcessVideoStreaming();
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         SendTelemetry();
 
@@ -76,7 +84,6 @@ public class ReciveAndSendManager : MonoBehaviour
         {
             lastVideoFrameTime = Time.time;
             isFrameProcessing = true;
-
             AsyncGPUReadback.Request(droneCameraRT, 0, OnGPUReadbackCompleted);
         }
     }
@@ -84,19 +91,10 @@ public class ReciveAndSendManager : MonoBehaviour
     private void OnGPUReadbackCompleted(AsyncGPUReadbackRequest request)
     {
         isFrameProcessing = false;
-
-        if (!isRunning) return;
-
-        if (request.hasError)
-        {
-            Debug.LogWarning("[VIDEO ERROR] Ошибка чтения из GPU (AsyncGPUReadback error)!");
-            return;
-        }
+        if (!isRunning || request.hasError) return;
 
         if (videoTextureCopy == null)
-        {
             videoTextureCopy = new Texture2D(droneCameraRT.width, droneCameraRT.height, TextureFormat.RGBA32, false);
-        }
 
         videoTextureCopy.LoadRawTextureData(request.GetData<byte>());
         videoTextureCopy.Apply(false, false);
@@ -104,21 +102,18 @@ public class ReciveAndSendManager : MonoBehaviour
 
         ThreadPool.QueueUserWorkItem(_ =>
         {
-            try
-            {
-                udpVideoSender?.Send(jpegBytes, jpegBytes.Length, externalAppIP, videoPort);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("Ошибка отправки видео: " + ex.Message);
-            }
+            try { udpVideoSender?.Send(jpegBytes, jpegBytes.Length, externalAppIP, videoPort); }
+            catch { }
         });
     }
 
-    void SendTelemetry()
+    private void SendTelemetry()
     {
         if (Physics == null) return;
         Transform t = Physics.gameObject.transform;
+        float finalSignal = overrideSignal ? currentSignal : CalculateSignalLevel();
+
+        if (!overrideSignal) currentSignal = finalSignal;
 
         TelemetryData data = new TelemetryData
         {
@@ -127,7 +122,8 @@ public class ReciveAndSendManager : MonoBehaviour
             roll = t.eulerAngles.z,
             gpsLat = 50.45d + ((double)t.position.z * 0.00001d),
             gpsLon = 30.52d + ((double)t.position.x * 0.00001d),
-            gpsAlt = t.position.y
+            gpsAlt = t.position.y,
+            signalPower = finalSignal 
         };
 
         string json = JsonUtility.ToJson(data);
@@ -135,7 +131,7 @@ public class ReciveAndSendManager : MonoBehaviour
         udpTelemetrySender.Send(bytes, bytes.Length, externalAppIP, telemetryPort);
     }
 
-    void ReceiveMotorCommands()
+    private void ReceiveMotorCommands()
     {
         IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, motorPort);
         while (isRunning)
@@ -145,38 +141,61 @@ public class ReciveAndSendManager : MonoBehaviour
                 byte[] bytes = udpMotorReceiver.Receive(ref remoteEndPoint);
                 string json = Encoding.UTF8.GetString(bytes);
                 MotorCommands cmds = JsonUtility.FromJson<MotorCommands>(json);
-
-                m1 = cmds.m1;
-                m2 = cmds.m2;
-                m3 = cmds.m3;
-                m4 = cmds.m4;
+                m1 = cmds.m1; m2 = cmds.m2; m3 = cmds.m3; m4 = cmds.m4;
             }
-            catch (Exception ex)
-            {
-                if (isRunning)
-                    Debug.LogWarning("Motor receive error: " + ex.Message);
-            }
+            catch { }
         }
     }
 
-    void OnApplicationQuit()
+    private void OnApplicationQuit()
     {
         isRunning = false;
         udpTelemetrySender?.Close();
         udpMotorReceiver?.Close();
         udpVideoSender?.Close();
+        if (videoTextureCopy != null) Destroy(videoTextureCopy);
+    }
 
-        if (videoTextureCopy != null)
-            Destroy(videoTextureCopy);
+    private float CalculateSignalLevel()
+    {
+        if (Physics == null || antens == null || antens.Count == 0) return 0f;
 
-        receiveThread?.Abort();
+        float bestSignal = 0f;
+        Vector3 dronePos = Physics.gameObject.transform.position;
+
+        for (int i = 0; i < antens.Count; i++)
+        {
+            Anten anten = antens[i];
+            if (anten == null) continue;
+
+            Vector3 directionToAntenna = anten.transform.position - dronePos;
+            float sqrDistance = directionToAntenna.sqrMagnitude;
+            float maxRSqr = anten.maxRange * anten.maxRange;
+
+            if (sqrDistance > maxRSqr) continue;
+
+            float distance = Mathf.Sqrt(sqrDistance);
+            float normalizedDistance = distance / anten.maxRange;
+            float rawSignal = anten.signalFalloff.Evaluate(normalizedDistance) * 100f;
+
+            Vector3 rayStartPos = dronePos + directionToAntenna.normalized * 1.5f;
+            if (UnityEngine.Physics.Raycast(rayStartPos, directionToAntenna.normalized, distance - 1.5f, anten.obstacleMask))
+            {
+                rawSignal *= anten.obstaclePenalty;
+            }
+
+            if (rawSignal > bestSignal) bestSignal = rawSignal;
+        }
+        return Mathf.Clamp(bestSignal, 0f, 100f);
     }
 }
 
 [System.Serializable]
-public class TelemetryData { 
+public class TelemetryData
+{
     public float pitch, roll, yaw, gpsAlt;
     public double gpsLat, gpsLon;
+    public float signalPower;
 }
 
 [System.Serializable]

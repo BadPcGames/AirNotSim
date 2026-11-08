@@ -66,6 +66,11 @@ public class DronePhysics : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (AirPresureManager.instance != null)
+        {
+            airDensity = AirPresureManager.instance.GetAirDensityForDrone(transform.position.y);
+        }
+
         ApplyPropulsionPhysics();
         ApplyBodyAerodynamics();
     }
