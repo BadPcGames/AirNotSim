@@ -1351,7 +1351,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 828461146}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6c73c9f6f8331e640acdaff7444d4919, type: 3}
   m_Name: 
@@ -1496,6 +1496,7 @@ GameObject:
   - component: {fileID: 951782316}
   - component: {fileID: 951782315}
   - component: {fileID: 951782314}
+  - component: {fileID: 951782317}
   m_Layer: 5
   m_Name: 1
   m_TagString: Untagged
@@ -1605,6 +1606,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 951782312}
   m_CullTransparentMesh: 1
+--- !u!114 &951782317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 951782312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc11eb1777bc64241ab4edd1389f8d94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  dronePhysics: {fileID: 1104273778}
+  motorIndex: 2
+  colorFull: {r: 0, g: 1, b: 0, a: 1}
+  colorDamaged: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  colorCritical: {r: 1, g: 0, b: 0, a: 1}
+  colorDestroyed: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &954882557
 GameObject:
   m_ObjectHideFlags: 0
@@ -2365,6 +2384,7 @@ GameObject:
   - component: {fileID: 1286125025}
   - component: {fileID: 1286125024}
   - component: {fileID: 1286125023}
+  - component: {fileID: 1286125026}
   m_Layer: 5
   m_Name: 4
   m_TagString: Untagged
@@ -2435,7 +2455,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1286125024}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1286125024
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2474,6 +2506,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1286125021}
   m_CullTransparentMesh: 1
+--- !u!114 &1286125026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1286125021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc11eb1777bc64241ab4edd1389f8d94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BladeUI
+  dronePhysics: {fileID: 1104273778}
+  motorIndex: 3
+  colorFull: {r: 0, g: 1, b: 0, a: 1}
+  colorDamaged: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  colorCritical: {r: 1, g: 0, b: 0, a: 1}
+  colorDestroyed: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &1382520757
 GameObject:
   m_ObjectHideFlags: 0
@@ -2598,9 +2648,9 @@ MonoBehaviour:
   - 0
   throtle:
   - 0.55
-  - 0.55
-  - 0.55
-  - 0.55
+  - 0
+  - 0
+  - 0
   EngineHealth:
   - 1
   - 1
@@ -2847,6 +2897,7 @@ GameObject:
   - component: {fileID: 1713861235}
   - component: {fileID: 1713861234}
   - component: {fileID: 1713861233}
+  - component: {fileID: 1713861236}
   m_Layer: 5
   m_Name: 3
   m_TagString: Untagged
@@ -2917,7 +2968,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1713861234}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1713861234
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2956,6 +3019,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1713861231}
   m_CullTransparentMesh: 1
+--- !u!114 &1713861236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713861231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc11eb1777bc64241ab4edd1389f8d94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BladeUI
+  dronePhysics: {fileID: 1104273778}
+  motorIndex: 1
+  colorFull: {r: 0, g: 1, b: 0, a: 1}
+  colorDamaged: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  colorCritical: {r: 1, g: 0, b: 0, a: 1}
+  colorDestroyed: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &1863318712
 GameObject:
   m_ObjectHideFlags: 0
@@ -3387,6 +3468,7 @@ GameObject:
   - component: {fileID: 2133599568}
   - component: {fileID: 2133599567}
   - component: {fileID: 2133599566}
+  - component: {fileID: 2133599569}
   m_Layer: 5
   m_Name: 2
   m_TagString: Untagged
@@ -3457,7 +3539,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2133599567}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2133599567
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3496,6 +3590,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2133599564}
   m_CullTransparentMesh: 1
+--- !u!114 &2133599569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2133599564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc11eb1777bc64241ab4edd1389f8d94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BladeUI
+  dronePhysics: {fileID: 1104273778}
+  motorIndex: 0
+  colorFull: {r: 0, g: 1, b: 0, a: 1}
+  colorDamaged: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  colorCritical: {r: 1, g: 0, b: 0, a: 1}
+  colorDestroyed: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1001 &5979538748190773892
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3514,7 +3626,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4441692662421288627, guid: d895ec8bf3d387b40ba2e627e3592cf5, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 120.61
+      value: 120.5723
       objectReference: {fileID: 0}
     - target: {fileID: 4441692662421288627, guid: d895ec8bf3d387b40ba2e627e3592cf5, type: 3}
       propertyPath: m_LocalPosition.z
