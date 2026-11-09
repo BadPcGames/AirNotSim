@@ -107,7 +107,6 @@ public class DronePhysics : MonoBehaviour
             float d4 = Mathf.Pow(diameterMeters, 4);
             float thrustForce = Ct * airDensity * rpsSquared * d4;
 
-            // --- РАСЧЕТ ЭФФЕКТА ЗЕМЛИ ---
             if (enableGroundEffect)
             {
                 RaycastHit hit;
@@ -126,7 +125,6 @@ public class DronePhysics : MonoBehaviour
                     }
                 }
             }
-            // ----------------------------
 
             Vector3 forceVector = motor.motorTransform.up * thrustForce;
             rb.AddForceAtPosition(forceVector, motor.motorTransform.position, ForceMode.Force);
@@ -140,61 +138,43 @@ public class DronePhysics : MonoBehaviour
         }
     }
 
-    // ==========================================
-    // НОВАЯ ЛОГИКА: АЭРОДИНАМИКА КОРПУСА (AeroBlocks)
-    // ==========================================
     void ApplyBodyAerodynamics()
     {
         foreach (AeroBlock block in aeroBlocks)
         {
             if (block.blockTransform == null) continue;
 
-            // 1. Получаем скорость воздуха в точке этого блока
             Vector3 worldVelocity = rb.GetPointVelocity(block.blockTransform.position);
             float speed = worldVelocity.magnitude;
 
-            // Если дрон стоит на месте, аэродинамики нет
             if (speed < 0.1f) continue;
 
-            // Направление движения воздуха (относительно дрона ветер дует навстречу)
             Vector3 airflowDir = -worldVelocity / speed;
 
-            // Переводим направление ветра в локальные координаты блока
             Vector3 localAirflowDir = block.blockTransform.InverseTransformDirection(airflowDir);
 
-            // 2. Считаем эффективную площадь сечения (Проекция коробки на направление ветра)
-            // Это гениально просто: мы умножаем площадь каждой грани на угол падения потока
-            float areaX = block.dimensions.y * block.dimensions.z; // Площадь вида сбоку
-            float areaY = block.dimensions.x * block.dimensions.z; // Площадь вида сверху/снизу
-            float areaZ = block.dimensions.x * block.dimensions.y; // Площадь вида спереди/сзади
+            float areaX = block.dimensions.y * block.dimensions.z; 
+            float areaY = block.dimensions.x * block.dimensions.z; 
+            float areaZ = block.dimensions.x * block.dimensions.y;
 
             float projectedArea = areaX * Mathf.Abs(localAirflowDir.x) +
                                   areaY * Mathf.Abs(localAirflowDir.y) +
                                   areaZ * Mathf.Abs(localAirflowDir.z);
 
-            // Динамическое давление (Dynamic Pressure) = 0.5 * Плотность * Скорость^2
             float dynamicPressure = 0.5f * airDensity * speed * speed;
 
-            // 3. Расчет силы лобового сопротивления (Drag)
-            // F = Динам_давление * Cd * Площадь
             float dragForce = dynamicPressure * block.dragCoefficient * projectedArea;
-            Vector3 dragVector = airflowDir * dragForce; // Сопротивление тянет дрон по ветру (назад)
+            Vector3 dragVector = airflowDir * dragForce; 
 
             rb.AddForceAtPosition(dragVector, block.blockTransform.position, ForceMode.Force);
 
-            // 4. Расчет подъемной силы корпуса (Lift)
-            // Работает, когда ветер бьёт в нижнюю грань (например, когда дрон летит вперед с наклоном вниз)
             if (block.liftCoefficient > 0)
             {
-                // Насколько сильно ветер бьёт снизу вверх (угол атаки днища)
-                // Если localAirflowDir.y положительный — ветер дует снизу вверх относительно блока.
                 float angleOfAttackEffect = localAirflowDir.y;
 
-                if (angleOfAttackEffect > 0.05f) // Если ветер бьет в дно
+                if (angleOfAttackEffect > 0.05f) 
                 {
                     float liftForce = dynamicPressure * block.liftCoefficient * projectedArea * angleOfAttackEffect;
-
-                    // Подъемная сила направлена локально "вверх" от плоскости блока
                     Vector3 liftVector = block.blockTransform.up * liftForce;
                     rb.AddForceAtPosition(liftVector, block.blockTransform.position, ForceMode.Force);
                 }
@@ -202,7 +182,6 @@ public class DronePhysics : MonoBehaviour
         }
     }
 
-    // Рисуем наши блоки в редакторе Unity для удобной настройки
     private void OnDrawGizmos()
     {
         if (aeroBlocks == null) return;
@@ -211,15 +190,14 @@ public class DronePhysics : MonoBehaviour
         {
             if (block.blockTransform != null && block.showDebug)
             {
-                Gizmos.color = new Color(0, 1, 1, 0.3f); // Полупрозрачный голубой цвет
+                Gizmos.color = new Color(0, 1, 1, 0.3f); 
 
-                // Сохраняем старую матрицу и применяем матрицу блока (чтобы кубы поворачивались вместе с дроном)
                 Matrix4x4 oldMatrix = Gizmos.matrix;
                 Gizmos.matrix = Matrix4x4.TRS(block.blockTransform.position, block.blockTransform.rotation, Vector3.one);
 
                 Gizmos.DrawCube(Vector3.zero, block.dimensions);
 
-                Gizmos.color = new Color(0, 1, 1, 1f); // Яркие края
+                Gizmos.color = new Color(0, 1, 1, 1f); 
                 Gizmos.DrawWireCube(Vector3.zero, block.dimensions);
 
                 Gizmos.matrix = oldMatrix;
