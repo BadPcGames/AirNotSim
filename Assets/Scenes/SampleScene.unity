@@ -3664,6 +3664,18 @@ PrefabInstance:
       propertyPath: groundLayer.m_Bits
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4460512652322209862, guid: d895ec8bf3d387b40ba2e627e3592cf5, type: 3}
+      propertyPath: motors.Array.data[1].bladesVisual.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460512652322209862, guid: d895ec8bf3d387b40ba2e627e3592cf5, type: 3}
+      propertyPath: motors.Array.data[2].bladesVisual.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460512652322209862, guid: d895ec8bf3d387b40ba2e627e3592cf5, type: 3}
+      propertyPath: motors.Array.data[3].bladesVisual.Array.size
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 6383826391724052432, guid: d895ec8bf3d387b40ba2e627e3592cf5, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0

@@ -20,6 +20,7 @@ public class DronePhysics : MonoBehaviour
         [Tooltip("Расстояние от оси мотора до центра масс одной лопасти в метрах")]
         public float bladeCoMRadius = 0.025f;
 
+        public List<GameObject> bladesVisual = new List<GameObject>();
         [HideInInspector] public bool[] activeBlades;
 
         [Header("Visuals & State")]
@@ -37,6 +38,10 @@ public class DronePhysics : MonoBehaviour
             if (index >= 0 && index < activeBlades.Length && activeBlades[index])
             {
                 activeBlades[index] = false;
+                if (bladesVisual[index] != null)
+                {
+                    bladesVisual[index].SetActive(false);
+                }
                 return true; 
             }
             return false;
