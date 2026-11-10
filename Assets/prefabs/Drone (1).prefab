@@ -797,6 +797,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Blade FR
       objectReference: {fileID: 0}
+    - target: {fileID: 2779804654892103622, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.259
+      objectReference: {fileID: 0}
     - target: {fileID: 3910161904899401178, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
       propertyPath: m_Name
       value: Blade FL
@@ -804,6 +808,14 @@ PrefabInstance:
     - target: {fileID: 4652208235138426216, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
       propertyPath: m_Name
       value: Drone
+      objectReference: {fileID: 0}
+    - target: {fileID: 4970469654589401868, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.062
+      objectReference: {fileID: 0}
+    - target: {fileID: 4970469654589401868, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.354
       objectReference: {fileID: 0}
     - target: {fileID: 5459530504181317586, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
       propertyPath: m_LocalPosition.x
