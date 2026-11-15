@@ -797,6 +797,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Blade FR
       objectReference: {fileID: 0}
+    - target: {fileID: 1595519435270519322, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
+      propertyPath: m_TargetTexture
+      value: 
+      objectReference: {fileID: 8400000, guid: 0a3ec0161374bfa459dbd75717a97b0a, type: 2}
     - target: {fileID: 2779804654892103622, guid: 38a811a7cea9e414da426ce1e0d27f13, type: 3}
       propertyPath: m_LocalPosition.z
       value: -0.259
