@@ -14,6 +14,22 @@ public class ReciveAndSendManager : MonoBehaviour
 
     public List<Anten> antens;
 
+    public enum GpsGlitchMode
+    {
+        ZeroNullIsland,
+        FreezeLastPosition, 
+        MultipathDrift      
+    }
+
+    public enum GyroGlitchMode
+    {
+        NoiseAndDrift,      
+        Freeze,     
+        ZeroOut        
+    }
+
+
+
     [Header("Network Settings")]
     public string externalAppIP = "127.0.0.1";
     public int telemetryPort = 9001;
@@ -31,6 +47,23 @@ public class ReciveAndSendManager : MonoBehaviour
     [Tooltip("Если включено, берет сигнал из ползунка ниже. Если выключено - считает физику.")]
     public bool overrideSignal = true;
     [Range(0, 100)] public float currentSignal = 100f;
+
+    [Header("Glitch Simulation (Debug)")]
+    public bool isGpsGlitchActive = false;
+    public GpsGlitchMode gpsGlitchMode = GpsGlitchMode.ZeroNullIsland;
+
+    public bool isGyroGlitchActive = false;
+    public GyroGlitchMode gyroGlitchMode = GyroGlitchMode.NoiseAndDrift;
+
+    private double lastValidLat, lastValidLon;
+    private float lastValidAlt;
+    private float lastValidPitch, lastValidYaw, lastValidRoll;
+
+    private double gpsDriftLat, gpsDriftLon;
+    private double gpsJumpLat, gpsJumpLon;
+    private float gpsJumpTimer;
+    private Vector3 gyroDriftOffset;
+
 
     private UdpClient udpTelemetrySender;
     private UdpClient udpMotorReceiver;
@@ -61,6 +94,26 @@ public class ReciveAndSendManager : MonoBehaviour
     private void Update()
     {
         ProcessVideoStreaming();
+    }
+
+    public void ToggleGpsGlitch()
+    {
+        isGpsGlitchActive = !isGpsGlitchActive;
+        gpsDriftLat = 0d;
+        gpsDriftLon = 0d;
+        gpsJumpLat = 0d;
+        gpsJumpLon = 0d;
+        gpsJumpTimer = 0f;
+
+        Debug.Log($"[GLITCH] GPS: {(isGpsGlitchActive ? "ON (" + gpsGlitchMode + ")" : "OFF")}");
+    }
+
+    public void ToggleGyroGlitch()
+    {
+        isGyroGlitchActive = !isGyroGlitchActive;
+        gyroDriftOffset = Vector3.zero;
+
+        Debug.Log($"[GLITCH] Gyro: {(isGyroGlitchActive ? "ON (" + gyroGlitchMode + ")" : "OFF")}");
     }
 
     private void FixedUpdate()
@@ -115,15 +168,95 @@ public class ReciveAndSendManager : MonoBehaviour
 
         if (!overrideSignal) currentSignal = finalSignal;
 
+        float pitch = t.eulerAngles.x;
+        float yaw = t.eulerAngles.y;
+        float roll = t.eulerAngles.z;
+
+        double lat = 50.45d + ((double)t.position.z * 0.00001d);
+        double lon = 30.52d + ((double)t.position.x * 0.00001d);
+        float alt = t.position.y;
+
+        if (!isGyroGlitchActive)
+        {
+            lastValidPitch = pitch;
+            lastValidYaw = yaw;
+            lastValidRoll = roll;
+        }
+        else
+        {
+            switch (gyroGlitchMode)
+            {
+                case GyroGlitchMode.NoiseAndDrift:
+                    gyroDriftOffset += new Vector3(12f, -8f, 15f) * Time.fixedDeltaTime;
+                    pitch = Mathf.Repeat(pitch + gyroDriftOffset.x + UnityEngine.Random.Range(-12f, 12f), 360f);
+                    yaw = Mathf.Repeat(yaw + gyroDriftOffset.y + UnityEngine.Random.Range(-10f, 10f), 360f);
+                    roll = Mathf.Repeat(roll + gyroDriftOffset.z + UnityEngine.Random.Range(-15f, 15f), 360f);
+                    break;
+
+                case GyroGlitchMode.Freeze:
+                    pitch = lastValidPitch;
+                    yaw = lastValidYaw;
+                    roll = lastValidRoll;
+                    break;
+
+                case GyroGlitchMode.ZeroOut:
+                    pitch = 0f;
+                    yaw = 0f;
+                    roll = 0f;
+                    break;
+            }
+        }
+
+        if (!isGpsGlitchActive)
+        {
+            lastValidLat = lat;
+            lastValidLon = lon;
+            lastValidAlt = alt;
+        }
+        else
+        {
+            switch (gpsGlitchMode)
+            {
+                case GpsGlitchMode.ZeroNullIsland:
+                    lat = 0d;
+                    lon = 0d;
+                    alt = 0f;
+                    break;
+
+                case GpsGlitchMode.FreezeLastPosition:
+                    lat = lastValidLat;
+                    lon = lastValidLon;
+                    alt = lastValidAlt;
+                    break;
+
+                case GpsGlitchMode.MultipathDrift:
+                    gpsDriftLat = Math.Clamp(gpsDriftLat + UnityEngine.Random.Range(-0.00005f, 0.00005f) * Time.fixedDeltaTime, -0.001d, 0.001d);
+                    gpsDriftLon = Math.Clamp(gpsDriftLon + UnityEngine.Random.Range(-0.00005f, 0.00005f) * Time.fixedDeltaTime, -0.001d, 0.001d);
+
+                    gpsJumpTimer -= Time.fixedDeltaTime;
+                    if (gpsJumpTimer <= 0f)
+                    {
+                        gpsJumpTimer = UnityEngine.Random.Range(0.8f, 2.5f);
+                        gpsJumpLat = UnityEngine.Random.Range(-0.0006f, 0.0006f); 
+                        gpsJumpLon = UnityEngine.Random.Range(-0.0006f, 0.0006f);
+                    }
+
+                    lat += gpsDriftLat + gpsJumpLat + UnityEngine.Random.Range(-0.00002f, 0.00002f);
+                    lon += gpsDriftLon + gpsJumpLon + UnityEngine.Random.Range(-0.00002f, 0.00002f);
+                    alt += UnityEngine.Random.Range(-15f, 15f);
+                    break;
+            }
+        }
+
         TelemetryData data = new TelemetryData
         {
-            pitch = t.eulerAngles.x,
-            yaw = t.eulerAngles.y,
-            roll = t.eulerAngles.z,
-            gpsLat = 50.45d + ((double)t.position.z * 0.00001d),
-            gpsLon = 30.52d + ((double)t.position.x * 0.00001d),
-            gpsAlt = t.position.y,
-            signalPower = finalSignal 
+            pitch = pitch,
+            yaw = yaw,
+            roll = roll,
+            gpsLat = lat,
+            gpsLon = lon,
+            gpsAlt = alt,
+            signalPower = finalSignal
         };
 
         string json = JsonUtility.ToJson(data);
