@@ -7,7 +7,7 @@ public class DronePhysics : MonoBehaviour
     public class Motor
     {
         public Transform motorTransform;
-        public float rotationDirection; 
+        public float rotationDirection;
 
         [Header("Propeller Specs")]
         public float diameterInches = 5.0f;
@@ -38,11 +38,11 @@ public class DronePhysics : MonoBehaviour
             if (index >= 0 && index < activeBlades.Length && activeBlades[index])
             {
                 activeBlades[index] = false;
-                if (bladesVisual[index] != null)
+                if (index < bladesVisual.Count && bladesVisual[index] != null)
                 {
                     bladesVisual[index].SetActive(false);
                 }
-                return true; 
+                return true;
             }
             return false;
         }
@@ -82,7 +82,7 @@ public class DronePhysics : MonoBehaviour
     void Start()
     {
         if (rb == null) rb = GetComponent<Rigidbody>();
-        rb.centerOfMass = CM.localPosition;
+        if (CM != null) rb.centerOfMass = transform.InverseTransformPoint(CM.position);
 
         foreach (var motor in motors)
         {
@@ -92,7 +92,6 @@ public class DronePhysics : MonoBehaviour
 
     void FixedUpdate()
     {
-
         if (AirPresureManager.instance != null)
             airDensity = AirPresureManager.instance.GetAirDensityForDrone(transform.position.y);
 
@@ -130,7 +129,7 @@ public class DronePhysics : MonoBehaviour
     {
         foreach (Motor motor in motors)
         {
-            if (motor.currentRPM <= 0) continue;
+            if (motor.motorTransform == null || motor.currentRPM <= 0f) continue;
 
             int activeBladeCount = 0;
             Vector2 imbalanceVector = Vector2.zero;
@@ -149,11 +148,21 @@ public class DronePhysics : MonoBehaviour
 
             if (activeBladeCount == 0) continue;
 
+            Vector3 motorPos = motor.motorTransform.position;
+            Vector3 motorUp = motor.motorTransform.up;
+            Vector3 motorWorldVel = rb.GetPointVelocity(motorPos);
+
+            // Обороты винта относительно воздуха с учётом вращения корпуса вокруг оси мотора
+            float bodyOmegaAlongAxis = Vector3.Dot(rb.angularVelocity, motorUp);
+            float bodyRPSAlongAxis = bodyOmegaAlongAxis / (2f * Mathf.PI);
+            float signedMotorRPS = (motor.currentRPM / 60f) * motor.rotationDirection;
+            float airRelativeSignedRPS = signedMotorRPS + bodyRPSAlongAxis;
+            float airRelativeRPS = Mathf.Abs(airRelativeSignedRPS);
+            float rpsSquared = airRelativeRPS * airRelativeRPS;
+
             float diameterMeters = motor.diameterInches * 0.0254f;
             float radiusMeters = diameterMeters * 0.5f;
             float pitchMeters = motor.pitchInches * 0.0254f;
-            float rps = motor.currentRPM / 60f;
-            float rpsSquared = rps * rps;
             float pitchToDiameterRatio = pitchMeters / diameterMeters;
 
             float Ct = baseCt * activeBladeCount * pitchToDiameterRatio;
@@ -162,33 +171,51 @@ public class DronePhysics : MonoBehaviour
             float d4 = Mathf.Pow(diameterMeters, 4);
             float thrustForce = Ct * airDensity * rpsSquared * d4;
 
+            // Влияние осевой скорости потока на тягу (Advance Ratio)
+            float axialVel = Vector3.Dot(motorWorldVel, motorUp);
+            float pitchSpeed = Mathf.Max(0.1f, airRelativeRPS * pitchMeters);
+            float advanceFactor = Mathf.Clamp(1f - (axialVel / pitchSpeed), 0f, 1.5f);
+            thrustForce *= advanceFactor;
+
+            // Экранный эффект с игнорированием собственного коллайдера дрона
             if (enableGroundEffect)
             {
-                RaycastHit hit;
                 float rayDistance = diameterMeters * 3f;
-                if (Physics.Raycast(motor.motorTransform.position, -motor.motorTransform.up, out hit, rayDistance, groundLayer))
+                if (Physics.Raycast(motorPos, -motorUp, out RaycastHit hit, rayDistance, groundLayer, QueryTriggerInteraction.Ignore))
                 {
-                    float h = hit.distance;
-                    if (h < diameterMeters * groundEffectMaxMultiplier && h > 0.01f)
+                    if (hit.rigidbody != rb)
                     {
-                        float ratio = radiusMeters / (4f * h);
-                        ratio = Mathf.Clamp(ratio, 0f, 0.8f);
-                        float groundEffectFactor = 1f / (1f - (ratio * ratio));
-                        groundEffectFactor = Mathf.Clamp(groundEffectFactor, 1f, 1.4f);
-                        thrustForce *= groundEffectFactor;
+                        float h = hit.distance;
+                        if (h < diameterMeters * groundEffectMaxMultiplier && h > 0.01f)
+                        {
+                            float ratio = Mathf.Clamp(radiusMeters / (4f * h), 0f, 0.8f);
+                            float groundEffectFactor = Mathf.Clamp(1f / (1f - (ratio * ratio)), 1f, 1.4f);
+                            thrustForce *= groundEffectFactor;
+                        }
                     }
                 }
             }
 
-            Vector3 forceVector = motor.motorTransform.up * thrustForce;
-            rb.AddForceAtPosition(forceVector, motor.motorTransform.position, ForceMode.Force);
+            Vector3 forceVector = motorUp * thrustForce;
+            rb.AddForceAtPosition(forceVector, motorPos, ForceMode.Force);
 
+            // Реактивный момент вдоль оси данного мотора
             float d5 = Mathf.Pow(diameterMeters, 5);
-            float torqueForce = Cq * airDensity * rpsSquared * d5;
-            torqueForce *= (motor.rotationDirection * -1f);
-            Vector3 torqueVector = transform.up * torqueForce;
-            rb.AddTorque(torqueVector, ForceMode.Force);
+            float torqueMagnitude = Cq * airDensity * rpsSquared * d5;
+            float torqueSign = airRelativeSignedRPS >= 0f ? -1f : 1f;
+            rb.AddTorque(motorUp * (torqueMagnitude * torqueSign), ForceMode.Force);
 
+            // Профильная боковая сила винта (Profile H-force)
+            float omegaRad = airRelativeRPS * 2f * Mathf.PI;
+            if (omegaRad > 1f)
+            {
+                Vector3 lateralVel = motorWorldVel - motorUp * axialVel;
+                float hForceFactor = (2f * torqueMagnitude) / (omegaRad * radiusMeters * radiusMeters);
+                Vector3 hForce = -lateralVel * hForceFactor;
+                rb.AddForceAtPosition(hForce, motorPos, ForceMode.Force);
+            }
+
+            // Симуляция вибрации при повреждении лопастей
             float imbalanceMagnitude = imbalanceVector.magnitude;
 
             if (imbalanceMagnitude > 0.01f)
@@ -198,7 +225,7 @@ public class DronePhysics : MonoBehaviour
                 float maxSafeVibrationForce = 15f * rb.mass;
 
                 float currentVibrationForce = imbalanceMagnitude * maxSafeVibrationForce * (normalizedRPM * normalizedRPM);
-                currentVibrationForce *= vibrationMultiplier; 
+                currentVibrationForce *= vibrationMultiplier;
 
                 float simulatedFrequency = normalizedRPM * 50f;
                 float currentAngleRad = simulatedFrequency * Time.fixedTime * Mathf.PI * 2f;
@@ -210,7 +237,7 @@ public class DronePhysics : MonoBehaviour
 
                 Vector3 vibrationForceVector = motor.motorTransform.TransformDirection(localVibrationDir) * currentVibrationForce;
 
-                rb.AddForceAtPosition(vibrationForceVector, motor.motorTransform.position, ForceMode.Force);
+                rb.AddForceAtPosition(vibrationForceVector, motorPos, ForceMode.Force);
             }
         }
     }
@@ -221,38 +248,38 @@ public class DronePhysics : MonoBehaviour
         {
             if (block.blockTransform == null) continue;
 
-            Vector3 worldVelocity = rb.GetPointVelocity(block.blockTransform.position);
-            float speed = worldVelocity.magnitude;
-
-            speed = Mathf.Clamp(speed, 0f, 40f);
-
-            if (speed < 0.1f) continue;
-
-            Vector3 airflowDir = -worldVelocity / speed;
-            Vector3 localAirflowDir = block.blockTransform.InverseTransformDirection(airflowDir);
-
+            Vector3 quarterExtents = block.dimensions * 0.25f;
             float areaX = block.dimensions.y * block.dimensions.z;
             float areaY = block.dimensions.x * block.dimensions.z;
             float areaZ = block.dimensions.x * block.dimensions.y;
 
-            float projectedArea = areaX * Mathf.Abs(localAirflowDir.x) +
-                                  areaY * Mathf.Abs(localAirflowDir.y) +
-                                  areaZ * Mathf.Abs(localAirflowDir.z);
-
-            float dynamicPressure = 0.5f * airDensity * speed * speed;
-            float dragForce = dynamicPressure * block.dragCoefficient * projectedArea;
-            Vector3 dragVector = airflowDir * dragForce;
-
-            rb.AddForceAtPosition(dragVector, block.blockTransform.position, ForceMode.Force);
-
-            if (block.liftCoefficient > 0)
+            // Разбиваем блок на 8 октантов для расчёта как линейного, так и вращательного сопротивления
+            for (int ix = -1; ix <= 1; ix += 2)
             {
-                float angleOfAttackEffect = localAirflowDir.y;
-                if (angleOfAttackEffect > 0.05f)
+                for (int iy = -1; iy <= 1; iy += 2)
                 {
-                    float liftForce = dynamicPressure * block.liftCoefficient * projectedArea * angleOfAttackEffect;
-                    Vector3 liftVector = block.blockTransform.up * liftForce;
-                    rb.AddForceAtPosition(liftVector, block.blockTransform.position, ForceMode.Force);
+                    for (int iz = -1; iz <= 1; iz += 2)
+                    {
+                        Vector3 localPoint = new Vector3(ix * quarterExtents.x, iy * quarterExtents.y, iz * quarterExtents.z);
+                        Vector3 worldPoint = block.blockTransform.TransformPoint(localPoint);
+
+                        Vector3 worldVelocity = rb.GetPointVelocity(worldPoint);
+                        float speed = Mathf.Clamp(worldVelocity.magnitude, 0f, 40f);
+
+                        if (speed < 0.001f) continue;
+
+                        Vector3 airflowDir = -worldVelocity / speed;
+                        Vector3 localAirflowDir = block.blockTransform.InverseTransformDirection(airflowDir);
+
+                        float projectedArea = (areaX * Mathf.Abs(localAirflowDir.x) +
+                                               areaY * Mathf.Abs(localAirflowDir.y) +
+                                               areaZ * Mathf.Abs(localAirflowDir.z)) * 0.125f;
+
+                        float dynamicPressure = 0.5f * airDensity * speed * speed;
+                        float dragForce = dynamicPressure * block.dragCoefficient * projectedArea;
+
+                        rb.AddForceAtPosition(airflowDir * dragForce, worldPoint, ForceMode.Force);
+                    }
                 }
             }
         }
